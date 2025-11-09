@@ -70,3 +70,4 @@ appsettings.Local.json
 # (We *keep* model files, but do NOT track converted optimization or cache artifacts)
 # -------------------------
 AITest/distilbert_onnx/
+AITest/bart_mnli_onnx/
