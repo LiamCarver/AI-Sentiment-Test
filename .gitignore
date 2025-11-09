@@ -69,5 +69,4 @@ appsettings.Local.json
 # ONNX Model Assets
 # (We *keep* model files, but do NOT track converted optimization or cache artifacts)
 # -------------------------
-
-**/distilbert_onnx/
+AITest/distilbert_onnx/
