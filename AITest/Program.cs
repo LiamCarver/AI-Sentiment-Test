@@ -2,40 +2,78 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.Tokenizers;
 
-var environment = OrtEnv.Instance();
-environment.EnvLogLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE;
-
-var options = new SessionOptions();
-options.AppendExecutionProvider_DML(); // Enable GPU
-options.EnableProfiling = true;
-
-using (var session = new InferenceSession("distilbert_onnx/model.onnx", options))
+class Program
 {
-    Console.WriteLine("Model Inputs:");
-    foreach (var input in session.InputMetadata)
-        Console.WriteLine($"  {input.Key} : {string.Join(", ", input.Value.Dimensions)} ({input.Value.ElementType})");
-
-    Console.WriteLine("\nModel Outputs:");
-    foreach (var output1 in session.OutputMetadata)
-        Console.WriteLine($"  {output1.Key}");
-
-    var exampleText = "I don't like this.";
-    
-    BertTokenizer tokenizer = BertTokenizer.Create("distilbert_onnx/vocab.txt");
-    var inputIds = tokenizer.EncodeToIds(exampleText).Select(x => (long)x).ToArray();
-
-    var attentionMask = inputIds.Select(id => id == tokenizer.PaddingTokenId ? 0L : 1L).ToArray();
-
-    var inputIdsTensor = new DenseTensor<long>(inputIds, new[] { 1, inputIds.Length });
-    var attentionMaskTensor = new DenseTensor<long>(attentionMask, new[] { 1, attentionMask.Length });
-
-    var inputs = new List<NamedOnnxValue>
+    static void Main()
     {
-        NamedOnnxValue.CreateFromTensor("input_ids", inputIdsTensor),
-        NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor)
-    };
+        using var session = InitializeSession("distilbert_onnx/model.onnx");
 
-    using (IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = session.Run(inputs))
+        PrintModelMetadata(session);
+
+        var exampleText = "I don't like this.";
+
+        var tokenizer = InitializeTokenizer("distilbert_onnx/vocab.txt");
+        var (inputIdsTensor, attentionMaskTensor) = PrepareInputs(tokenizer, exampleText);
+
+        var results = RunInference(session, inputIdsTensor, attentionMaskTensor);
+        InterpretResults(results);
+    }
+
+    private static InferenceSession InitializeSession(string modelPath)
+    {
+        var environment = OrtEnv.Instance();
+        environment.EnvLogLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE;
+
+        var options = new SessionOptions();
+        options.AppendExecutionProvider_DML(); // Enable GPU
+        options.EnableProfiling = true;
+
+        return new InferenceSession(modelPath, options);
+    }
+
+    private static BertTokenizer InitializeTokenizer(string vocabPath)
+    {
+        return BertTokenizer.Create(vocabPath);
+    }
+
+    private static void PrintModelMetadata(InferenceSession session)
+    {
+        Console.WriteLine("Model Inputs:");
+        foreach (var input in session.InputMetadata)
+            Console.WriteLine($"  {input.Key} : {string.Join(", ", input.Value.Dimensions)} ({input.Value.ElementType})");
+
+        Console.WriteLine("\nModel Outputs:");
+        foreach (var output in session.OutputMetadata)
+            Console.WriteLine($"  {output.Key}");
+    }
+
+    private static (DenseTensor<long> inputIds, DenseTensor<long> attentionMask)
+        PrepareInputs(BertTokenizer tokenizer, string text)
+    {
+        var inputIds = tokenizer.EncodeToIds(text).Select(x => (long)x).ToArray();
+        var attentionMask = inputIds.Select(id => id == tokenizer.PaddingTokenId ? 0L : 1L).ToArray();
+
+        var inputIdsTensor = new DenseTensor<long>(inputIds, new[] { 1, inputIds.Length });
+        var attentionMaskTensor = new DenseTensor<long>(attentionMask, new[] { 1, attentionMask.Length });
+
+        return (inputIdsTensor, attentionMaskTensor);
+    }
+
+    private static IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunInference(
+        InferenceSession session,
+        DenseTensor<long> inputIds,
+        DenseTensor<long> attentionMask)
+    {
+        var inputs = new List<NamedOnnxValue>
+        {
+            NamedOnnxValue.CreateFromTensor("input_ids", inputIds),
+            NamedOnnxValue.CreateFromTensor("attention_mask", attentionMask)
+        };
+
+        return session.Run(inputs);
+    }
+
+    private static void InterpretResults(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results)
     {
         var logits = results.First().AsTensor<float>().ToArray();
 
