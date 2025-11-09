@@ -53,8 +53,8 @@ class Program
         var inputIds = tokenizer.EncodeToIds(text).Select(x => (long)x).ToArray();
         var attentionMask = inputIds.Select(id => id == tokenizer.PaddingTokenId ? 0L : 1L).ToArray();
 
-        var inputIdsTensor = new DenseTensor<long>(inputIds, new[] { 1, inputIds.Length });
-        var attentionMaskTensor = new DenseTensor<long>(attentionMask, new[] { 1, attentionMask.Length });
+        var inputIdsTensor = new DenseTensor<long>(inputIds, [1, inputIds.Length]);
+        var attentionMaskTensor = new DenseTensor<long>(attentionMask, [1, attentionMask.Length]);
 
         return (inputIdsTensor, attentionMaskTensor);
     }
