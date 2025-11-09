@@ -4,7 +4,7 @@ class Program
 {
     static void Main()
     {
-        var distilBertOnnx = new DistilBertOnnx();
-        distilBertOnnx.Run();
+        var bartOnnx = new BartOnnx();
+        bartOnnx.Run();
     }
 }
