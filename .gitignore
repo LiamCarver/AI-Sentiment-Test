@@ -1,0 +1,73 @@
+# -------------------------
+# Build outputs
+# -------------------------
+bin/
+obj/
+out/
+**/dist/
+**/packages/
+*.user
+*.rsuser
+*.suo
+*.cache
+*.pdb
+
+# -------------------------
+# Visual Studio / VSCode
+# -------------------------
+.vs/
+.idea/
+.vscode/
+*.code-workspace
+
+# -------------------------
+# OS-specific files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Logs / Temp / Debug
+# -------------------------
+*.log
+*.tlog
+*.tmp
+*.temp
+*.ilk
+*.idb
+
+# -------------------------
+# NuGet restore artifacts
+# -------------------------
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+
+# -------------------------
+# Configuration Secrets
+# -------------------------
+appsettings.Development.json
+appsettings.Local.json
+*.secret.json
+*.env
+
+# -------------------------
+# Generated files
+# -------------------------
+*.generated.*
+*.g.cs
+
+# -------------------------
+# Python tokenizer cache (if ever using HuggingFace tooling)
+# -------------------------
+**/__pycache__/
+*.pyc
+
+# -------------------------
+# ONNX Model Assets
+# (We *keep* model files, but do NOT track converted optimization or cache artifacts)
+# -------------------------
+
+**/distilbert_onnx/
