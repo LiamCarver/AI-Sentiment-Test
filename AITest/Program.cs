@@ -1,22 +1,24 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.Tokenizers;
+using NumSharp;
 
 class Program
 {
     static void Main()
     {
-        using var session = InitializeSession("distilbert_onnx/model.onnx");
+        using (var session = InitializeSession("distilbert_onnx/model.onnx"))
+        {
+            //PrintModelMetadata(session);
 
-        PrintModelMetadata(session);
+            var exampleText = "I don't like this.";
 
-        var exampleText = "I don't like this.";
+            var tokenizer = InitializeTokenizer("distilbert_onnx/vocab.txt");
+            var (inputIdsTensor, attentionMaskTensor) = PrepareInputs(tokenizer, exampleText);
 
-        var tokenizer = InitializeTokenizer("distilbert_onnx/vocab.txt");
-        var (inputIdsTensor, attentionMaskTensor) = PrepareInputs(tokenizer, exampleText);
-
-        var results = RunInference(session, inputIdsTensor, attentionMaskTensor);
-        InterpretResults(results);
+            var results = RunInference(session, inputIdsTensor, attentionMaskTensor);
+            InterpretResults(results);
+        }
     }
 
     private static InferenceSession InitializeSession(string modelPath)
@@ -75,17 +77,15 @@ class Program
 
     private static void InterpretResults(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results)
     {
-        var logits = results.First().AsTensor<float>().ToArray();
+        var logits = np.array(results.First().AsTensor<float>().ToArray());
 
-        float neg = logits[0];
-        float pos = logits[1];
+        // Apply softmax using NumSharp broadcasting (element-wise operations)
+        var exp = np.exp(logits);
+        var probabilities = exp / np.sum(exp);
 
-        float expNeg = MathF.Exp(neg);
-        float expPos = MathF.Exp(pos);
-        float sum = expNeg + expPos;
-
-        float probNeg = expNeg / sum;
-        float probPos = expPos / sum;
+        // Extract individual probabilities
+        float probNeg = probabilities[0].GetSingle();
+        float probPos = probabilities[1].GetSingle();
 
         Console.WriteLine($"Negative: {probNeg:P2}, Positive: {probPos:P2}");
         Console.WriteLine($"Predicted sentiment: {(probPos > probNeg ? "POSITIVE" : "NEGATIVE")}");
